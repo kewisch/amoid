@@ -83,7 +83,7 @@ async function cmd_convert(argv) {
   let res = await redashSQL(`SELECT ${columns.join(",")} FROM addons WHERE ${argv.input} IN (${escapedIds.join(",")})`);
   let resdata = res.query_result.data.rows.map(row => columns.map(column => escape(row[column])).join(","));
 
-  if (resdata.length > 1 && resdata.length > 0) {
+  if (columns.length > 1 && resdata.length > 0) {
     console.log(columns.join(","));
   }
   console.log(resdata.join("\n"));
