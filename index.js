@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * Portions Copyright (C) Philipp Kewisch, 2019 */
 
-
 var ini = require("ini");
 var fs = require("fs");
 var RedashClient = require("redash-client");
@@ -34,7 +33,10 @@ function waitForStdin() {
   });
 }
 
-async function redashSQL(sql) {
+async function redashSQL(sql, debug) {
+  if (debug) {
+    console.warn(sql);
+  }
   let config = ini.parse(fs.readFileSync(path.join(os.homedir(), ".amorc"), "utf-8"));
   if (config && config.auth && config.auth.redash_key) {
     let redash = new RedashClient({
@@ -121,6 +123,11 @@ async function cmd_convert(argv) {
           "describe": "The input format",
           "choices": FORMAT_CHOICES,
           "default": FORMAT_CHOICES
+        })
+        .option("d", {
+          "alias": "debug",
+          "describe": "Show debugging information",
+          "boolean": true
         });
     }, cmd_convert)
     .example("cat guids | $0", "hello")
