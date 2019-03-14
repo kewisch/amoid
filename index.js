@@ -68,6 +68,29 @@ function csvEscape(str) {
   return (str || "").toString().replace(/,/g, "\\,");
 }
 
+function detectInput(data) {
+  let RE_GUID = /^(\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}|[a-z0-9-._]*@[a-z0-9-._]+)$/i;
+  let RE_IDS = /^[0-9]+$/;
+  let countGuids = 0;
+  let countIds = 0;
+  for (let line of data) {
+    if (line.match(RE_IDS)) {
+      countIds++;
+    } else if (line.match(RE_GUID)) {
+      countGuids++;
+    }
+  }
+
+  let total = data.length;
+  if (countIds == total) {
+    return "id";
+  } else if (countGuids == total) {
+    return "guid";
+  } else {
+    return "slug";
+  }
+}
+
 async function cmd_convert(argv) {
   let data = argv.identifier;
   if (!data.length) {
@@ -77,9 +100,14 @@ async function cmd_convert(argv) {
     data = await waitForStdin();
   }
 
+  if (argv.input == "auto") {
+    argv.input = detectInput(data);
+  }
 
   let columns = Array.isArray(argv.output) ? argv.output : [argv.output];
   let escape = columns.length > 1 ? csvEscape : (value) => value;
+
+  console.warn(`Converting ${argv.input}s to ${columns.join("s,")}s`);
 
   let escapedIds = data.map(line => '"' + mysqlEscape(line) + '"');
   let res = await redashSQL(`SELECT ${columns.join(",")} FROM addons WHERE ${argv.input} IN (${escapedIds.join(",")})`);
@@ -89,7 +117,7 @@ async function cmd_convert(argv) {
     console.log(columns.join(","));
   }
   console.log(resdata.join("\n"));
-  if (resdata.length != data.length) {
+  if (resdata.length < data.length) {
     console.warn(`Warning: ${data.length - resdata.length} entries were not found`);
   }
 }
@@ -114,8 +142,8 @@ async function cmd_convert(argv) {
           },
           "describe": "The input format",
           "nargs": 1,
-          "choices": FORMAT_CHOICES,
-          "default": "guid"
+          "choices": FORMAT_CHOICES.concat(["auto"]),
+          "default": "auto"
         })
         .option("o", {
           "alias": "output",
