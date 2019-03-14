@@ -110,7 +110,38 @@ async function cmd_convert(argv) {
   console.warn(`Converting ${argv.input}s to ${columns.join("s,")}s`);
 
   let escapedIds = data.map(line => '"' + mysqlEscape(line) + '"');
-  let res = await redashSQL(`SELECT ${columns.join(",")} FROM addons WHERE ${argv.input} IN (${escapedIds.join(",")})`);
+  let res;
+  if (argv.user) {
+    res = await redashSQL(`
+      SELECT ${columns.map(col => "a." + col).join(",")},au.user_id
+      FROM addons_users au
+      LEFT JOIN addons a ON (a.id = au.addon_id)
+      WHERE
+        au.user_id IN (
+          SELECT au.user_id
+          FROM addons a
+          RIGHT JOIN addons_users au ON (a.id = au.addon_id)
+          WHERE a.${argv.input} IN (${escapedIds.join(",")})
+          GROUP BY au.user_id
+        )
+        AND a.guid NOT LIKE 'guid-reused-by-pk-%'
+        GROUP BY a.id
+    `, argv.debug);
+
+    // Add the user_id column for display, if there is more than one column already
+    if (columns.length > 1) {
+      columns.push("user_id");
+    }
+  } else {
+    res = await redashSQL(`
+      SELECT ${columns.join(",")}
+      FROM addons
+      WHERE
+        ${argv.input} IN (${escapedIds.join(",")})
+        AND guid NOT LIKE 'guid-reused-by-pk-%'
+    `, argv.debug);
+  }
+
   let resdata = res.query_result.data.rows.map(row => columns.map(column => escape(row[column])).join(","));
 
   if (columns.length > 1 && resdata.length > 0) {
@@ -151,6 +182,11 @@ async function cmd_convert(argv) {
           "describe": "The input format",
           "choices": FORMAT_CHOICES,
           "default": FORMAT_CHOICES
+        })
+        .option("U", {
+          "alias": "user",
+          "describe": "Expand list to include all guids of all involved users",
+          "boolean": true
         })
         .option("d", {
           "alias": "debug",
