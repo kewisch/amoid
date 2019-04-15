@@ -116,6 +116,10 @@ async function cmd_convert(argv) {
       SELECT ${columns.map(col => "a." + col).join(",")},au.user_id
       FROM addons_users au
       LEFT JOIN addons a ON (a.id = au.addon_id)
+      ${argv.wx ? `
+        LEFT JOIN versions v ON (v.addon_id = a.id)
+        LEFT JOIN files f ON (f.version_id = v.id)
+        ` : ""}
       WHERE
         au.user_id IN (
           SELECT au.user_id
@@ -125,6 +129,7 @@ async function cmd_convert(argv) {
           GROUP BY au.user_id
         )
         AND a.guid NOT LIKE 'guid-reused-by-pk-%'
+        ${argv.wx ? "AND f.is_webextension = 1" : ""}
         GROUP BY a.id
     `, argv.debug);
 
@@ -134,11 +139,17 @@ async function cmd_convert(argv) {
     }
   } else {
     res = await redashSQL(`
-      SELECT ${columns.join(",")}
-      FROM addons
+      SELECT ${columns.map(col => "a." + col).join(",")}
+      FROM addons a
+      ${argv.wx ? `
+        LEFT JOIN versions v ON (v.addon_id = a.id)
+        LEFT JOIN files f ON (f.version_id = v.id)
+        ` : ""}
       WHERE
-        ${argv.input} IN (${escapedIds.join(",")})
-        AND guid NOT LIKE 'guid-reused-by-pk-%'
+        a.${argv.input} IN (${escapedIds.join(",")})
+        AND a.guid NOT LIKE 'guid-reused-by-pk-%'
+        ${argv.wx ? "AND f.is_webextension = 1" : ""}
+      GROUP BY a.id
     `, argv.debug);
   }
 
@@ -186,6 +197,11 @@ async function cmd_convert(argv) {
         .option("U", {
           "alias": "user",
           "describe": "Expand list to include all guids of all involved users",
+          "boolean": true
+        })
+        .option("w", {
+          "alias": "wx",
+          "describe": "Filter ids to only include add-ons that have a WebExtension version",
           "boolean": true
         })
         .option("d", {
