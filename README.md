@@ -19,8 +19,11 @@ To create the config, you can add a `~/.amorc` (or `%HOME%/amorc.ini` on Windows
 set your redash user api key (not the query key):
 
 ```
-[auth]
-redash_key=42c85d86fd212538f4394f47c80fa62c
+{
+  "auth": {
+    "redash_key": "42c85d86fd212538f4394f47c80fa62c"
+  }
+}
 ```
 
 Examples

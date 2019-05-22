@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * Portions Copyright (C) Philipp Kewisch, 2019 */
 
-var ini = require("ini");
 var fs = require("fs");
 var RedashClient = require("redash-client");
 var yargs = require("yargs");
@@ -37,7 +36,7 @@ async function redashSQL(sql, debug) {
   if (debug) {
     console.warn(sql);
   }
-  let config = ini.parse(fs.readFileSync(path.join(os.homedir(), ".amorc"), "utf-8"));
+  let config = JSON.parse(fs.readFileSync(path.join(os.homedir(), ".amorc"), "utf-8"));
   if (config && config.auth && config.auth.redash_key) {
     let redash = new RedashClient({
       endPoint: REDASH_URL,
