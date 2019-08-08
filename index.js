@@ -108,6 +108,9 @@ async function cmd_convert(argv) {
 
   console.warn(`Converting ${argv.input}s to ${columns.join("s,")}s`);
 
+  // Remove falsy values from Array
+  data = data.filter(Boolean);
+
   let escapedIds = data.map(line => '"' + mysqlEscape(line) + '"');
   let res;
   if (argv.user) {
