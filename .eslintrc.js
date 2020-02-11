@@ -6,7 +6,8 @@ module.exports = {
     "node": true
   },
   "parserOptions": {
-    "ecmaVersion": 8
+    "ecmaVersion": 11,
+    "sourceType": "module"
   },
   "globals": {
     "self": true

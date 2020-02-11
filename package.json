@@ -1,12 +1,12 @@
 {
   "name": "amoid",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "Convert between different AMO identifier formats",
-  "main": "index.js",
-  "bin": "index.js",
+  "main": "src/loader.js",
+  "bin": "src/loader.js",
   "dependencies": {
-    "ini": "^1.3.5",
-    "redash-client": "^2.0.0",
+    "amolib": "github:kewisch/amolib",
+    "esm": "^3.2.25",
     "yargs": "^13.2.1"
   },
   "devDependencies": {},
