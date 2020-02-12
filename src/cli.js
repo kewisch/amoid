@@ -154,23 +154,29 @@ class AMOID {
   }
 
   async partition(argv) {
+    function header(text) {
+      return argv.output ? "" : bold(text) + "\n";
+    }
+
     let data = await this.getInputData(argv.identifier);
-
     let { ids, guids, other } = partitionIds(data);
-
     let sections = [];
 
-    if (ids.length) {
-      sections.push(bold("IDs:") + "\n" + ids.join("\n"));
-    }
-    if (guids.length) {
-      sections.push(bold("GUIDs:") + "\n" + guids.join("\n"));
-    }
-    if (other.length) {
-      sections.push(bold("Other:") + "\n" + other.join("\n"));
+    if (argv.debug) {
+      console.warn(`Found ${ids.length} ids, ${guids.length} guids, and ${other.length} potential slugs`);
     }
 
-    console.log(sections.join("\n\n"));
+    if (ids.length && (!argv.output || argv.output.includes("id"))) {
+      sections.push(header("IDs:") + ids.join("\n"));
+    }
+    if (guids.length && (!argv.output || argv.output.includes("guid"))) {
+      sections.push(header("GUIDs:") + guids.join("\n"));
+    }
+    if (other.length && (!argv.output || argv.output.includes("slug"))) {
+      sections.push(header("Slugs:") + other.join("\n"));
+    }
+
+    console.log(sections.join(argv.output ? "\n" : "\n\n"));
   }
 }
 
@@ -178,12 +184,27 @@ class AMOID {
   let config = getConfig();
 
   let argv = yargs // eslint-disable-line no-unused-expressions
-    .command("partition", "Split ids between different formats", (subyargs) => {
+    .option("d", {
+      "alias": "debug",
+      "describe": "Show debugging information",
+      "boolean": true,
+      "global": true
+    })
+    .command("partition [identifier...]", "Split ids between different formats: ids, guids, or slugs.\nNote that slugs may also contain invalid guids as there is no format restriction on slugs.", (subyargs) => {
       subyargs.positional("identifier", {
         describe: "The guids, ids or slugs as input.",
         type: "string",
       })
-        .default("identifier", [], "<from stdin>");
+        .default("identifier", [], "<from stdin>")
+        .option("o", {
+          alias: "output",
+          describe: "The ids types to output. If this option is passed, no headers will be shown",
+          type: "array",
+          choices: ["id", "guid", "slug"]
+        })
+        .example("amoid partition 123 @guid slug", "Splits the ids into three sections, one for each id type")
+        .example("amoid partition 123 @guid slug -o guid", "Show a flat list of only the guids, no headers")
+        .example("amoid partition 123 @guid slug -o id -o guid", "Show a flat list of ids and guids, no headers");
     })
     .command("$0 [identifier..]", "Convert between different id formats. Takes guids by default.", (subyargs) => {
       subyargs.positional("identifier", {
@@ -221,11 +242,6 @@ class AMOID {
         .option("w", {
           "alias": "wx",
           "describe": "Filter ids to only include add-ons that have a WebExtension version",
-          "boolean": true
-        })
-        .option("d", {
-          "alias": "debug",
-          "describe": "Show debugging information",
           "boolean": true
         });
     })
